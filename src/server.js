@@ -13,37 +13,43 @@ const authenticate = require("./middleware/auth");
 
 const app = express();
 
-// ------------------ CORS Setup ------------------
+// ------------------ Allowed Origins ------------------
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.FRONTEND_URL, // deployed frontend
+  process.env.FRONTEND_URL, // e.g., https://yellow-frontend.vercel.app
 ];
 
+// ------------------ CORS Middleware ------------------
 app.use(
   cors({
     origin: function (origin, callback) {
-      console.log("Incoming origin:", origin); // for debugging
-      if (!origin) return callback(null, true); // allow server-to-server or Postman
-      if (allowedOrigins.includes(origin)) return callback(null, origin); // exact origin
-      // Do NOT throw error; reject silently to avoid 500
-      return callback(null, false);
+      console.log("Incoming origin:", origin); // debug
+      if (!origin) return callback(null, true); // allow non-browser requests like Postman or server-to-server
+      if (allowedOrigins.includes(origin)) return callback(null, origin); // exact allowed origin
+      return callback(new Error("Not allowed by CORS")); // reject all others
     },
-    credentials: true,
+    credentials: true, // required for withCredentials
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Handle preflight OPTIONS requests globally
-app.options("*", cors());
+// Handle OPTIONS preflight requests globally
+app.options(
+  "*",
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 
 // ------------------ Middleware ------------------
 app.use(express.json());
 
 // ------------------ Routes ------------------
-// Public routes (no JWT required)
+// Public routes (no JWT)
 app.use("/api/auth", authRoutes);
 
-// Protected routes (JWT required)
+// Protected routes (require JWT)
 app.use("/api/projects", authenticate, projectsRoutes);
 app.use("/api/projects", authenticate, promptsRoutes);
 app.use("/api/projects", authenticate, chatRoutes);
