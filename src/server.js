@@ -14,15 +14,19 @@ const authenticate = require("./middleware/auth");
 const app = express();
 
 // ------------------ CORS Setup ------------------
-const allowedOrigins = ["http://localhost:5173", process.env.FRONTEND_URL];
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL, // deployed frontend
+];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      console.log("Incoming origin:", origin); // log for debugging
-      if (!origin) return callback(null, true); // allow non-browser requests (Postman, server)
+      console.log("Incoming origin:", origin); // for debugging
+      if (!origin) return callback(null, true); // allow server-to-server or Postman
       if (allowedOrigins.includes(origin)) return callback(null, origin); // exact origin
-      return callback(new Error("Not allowed by CORS"));
+      // Do NOT throw error; reject silently to avoid 500
+      return callback(null, false);
     },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
