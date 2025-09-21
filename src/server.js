@@ -15,9 +15,26 @@ const app = express();
 // ------------------ CORS Setup ------------------
 const allowedOrigins = [
   "http://localhost:5173", // local dev
-  process.env.FRONTEND_URL, // deployed frontend
+  process.env.FRONTEND_URL, // deployed frontend (Vercel)
 ];
 
+// Handle preflight OPTIONS requests for all routes
+app.options(
+  "*",
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS: " + origin));
+      }
+    },
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// Apply CORS middleware for all routes
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -41,7 +58,7 @@ app.use("/api/projects", projectsRoutes);
 app.use("/api/projects", promptsRoutes);
 app.use("/api/projects", chatRoutes);
 app.use("/api/messages", messagesRoutes);
-app.use("/api/files", filesRoutes); // POST /api/files/:projectId/upload
+app.use("/api/files", filesRoutes);
 
 // ------------------ Connect MongoDB & Start Server ------------------
 const PORT = process.env.PORT || 4000;
