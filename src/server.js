@@ -14,30 +14,27 @@ const app = express();
 
 // ------------------ CORS Setup ------------------
 const allowedOrigins = [
-  "http://localhost:5173", // local development
+  "http://localhost:5173", // local dev
   process.env.FRONTEND_URL, // deployed frontend on Vercel
 ];
 
-// Apply CORS middleware to all routes
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like Postman or server-to-server)
-      if (!origin) return callback(null, true);
+// Middleware to handle CORS for all requests
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin); // exact origin
+  }
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true); // allow
-      } else {
-        return callback(null, false); // reject silently
-      }
-    },
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+  // Handle preflight OPTIONS request
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
 
-// Handle all OPTIONS preflight requests
-app.options("*", cors());
+  next();
+});
 
 // ------------------ Middleware ------------------
 app.use(express.json());
@@ -48,7 +45,7 @@ app.use("/api/projects", projectsRoutes);
 app.use("/api/projects", promptsRoutes);
 app.use("/api/projects", chatRoutes);
 app.use("/api/messages", messagesRoutes);
-app.use("/api/files", filesRoutes); // POST /api/files/:projectId/upload
+app.use("/api/files", filesRoutes);
 
 // ------------------ Connect MongoDB & Start Server ------------------
 const PORT = process.env.PORT || 4000;
