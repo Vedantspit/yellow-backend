@@ -14,40 +14,30 @@ const app = express();
 
 // ------------------ CORS Setup ------------------
 const allowedOrigins = [
-  "http://localhost:5173", // local dev
-  process.env.FRONTEND_URL, // deployed frontend (Vercel)
+  "http://localhost:5173", // local development
+  process.env.FRONTEND_URL, // deployed frontend on Vercel
 ];
 
-// Handle preflight OPTIONS requests for all routes
-app.options(
-  "*",
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS: " + origin));
-      }
-    },
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
-// Apply CORS middleware for all routes
+// Apply CORS middleware to all routes
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
+      // allow requests with no origin (like Postman or server-to-server)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true); // allow
       } else {
-        callback(new Error("Not allowed by CORS: " + origin));
+        return callback(null, false); // reject silently
       }
     },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// Handle all OPTIONS preflight requests
+app.options("*", cors());
 
 // ------------------ Middleware ------------------
 app.use(express.json());
@@ -58,7 +48,7 @@ app.use("/api/projects", projectsRoutes);
 app.use("/api/projects", promptsRoutes);
 app.use("/api/projects", chatRoutes);
 app.use("/api/messages", messagesRoutes);
-app.use("/api/files", filesRoutes);
+app.use("/api/files", filesRoutes); // POST /api/files/:projectId/upload
 
 // ------------------ Connect MongoDB & Start Server ------------------
 const PORT = process.env.PORT || 4000;
